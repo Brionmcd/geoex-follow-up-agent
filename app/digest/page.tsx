@@ -293,7 +293,7 @@ export default function DigestPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold text-gray-900">GeoEx</h1>
+                <Link href="/" className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">GeoEx</Link>
                 <span className="text-gray-300">|</span>
                 <span className="text-gray-500">Daily Digest</span>
               </div>

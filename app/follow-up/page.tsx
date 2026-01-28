@@ -116,7 +116,7 @@ export default function FollowUpPage() {
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-gray-900">GeoEx</h1>
+              <Link href="/" className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">GeoEx</Link>
               <span className="text-gray-300">|</span>
               <span className="text-gray-500">Follow-Up Agent</span>
             </div>
