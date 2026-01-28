@@ -119,6 +119,20 @@ export default function DigestPage() {
   const attentionTravelers = result?.travelers.filter((t) => t.priority === 'attention') || [];
   const waitTravelers = result?.travelers.filter((t) => t.priority === 'wait') || [];
 
+  // Build URL for Follow-Up Agent with traveler data
+  const buildFollowUpUrl = (traveler: AnalyzedTraveler) => {
+    const params = new URLSearchParams({
+      name: traveler.name,
+      email: traveler.email,
+      days: traveler.daysUntilDeparture.toString(),
+      contacts: traveler.previousContacts.toString(),
+      missing: traveler.missingItems.join(','),
+      notes: traveler.notes || '',
+      from: 'digest',
+    });
+    return `/follow-up?${params.toString()}`;
+  };
+
   // Traveler Card Component
   const TravelerCard = ({ traveler }: { traveler: AnalyzedTraveler }) => {
     const isExpanded = expandedCards.has(traveler.id);
@@ -181,6 +195,12 @@ export default function DigestPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-2 flex-shrink-0">
+              <Link
+                href={buildFollowUpUrl(traveler)}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-center"
+              >
+                Open Details →
+              </Link>
               {traveler.message && (
                 <button
                   onClick={() => toggleCard(traveler.id)}
