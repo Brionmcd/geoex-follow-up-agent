@@ -11,7 +11,7 @@ interface AnalyzedTraveler extends Traveler {
   urgency: 'low' | 'medium' | 'high';
   channel: 'email' | 'phone';
   reasoning: string;
-  message: {
+  message?: {
     subject: string;
     body: string;
   } | null;
@@ -35,6 +35,10 @@ export default function DigestPage() {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [markedDone, setMarkedDone] = useState<Set<string>>(new Set());
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [loadingDrafts, setLoadingDrafts] = useState<Set<string>>(new Set());
+  const [generatedDrafts, setGeneratedDrafts] = useState<Record<string, { subject: string; body: string }>>(
+    {}
+  );
 
   // Format today's date
   const today = new Date().toLocaleDateString('en-US', {
@@ -52,6 +56,7 @@ export default function DigestPage() {
   const generateDigest = async () => {
     setIsLoading(true);
     setError(null);
+    setGeneratedDrafts({});
 
     try {
       const response = await fetch('/api/digest', {
@@ -75,6 +80,48 @@ export default function DigestPage() {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const generateDraft = async (traveler: AnalyzedTraveler) => {
+    setLoadingDrafts((prev) => new Set(prev).add(traveler.id));
+
+    try {
+      const response = await fetch('/api/draft', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: traveler.name,
+          email: traveler.email,
+          tripName: traveler.tripName,
+          daysUntilDeparture: traveler.daysUntilDeparture,
+          previousContacts: traveler.previousContacts,
+          missingItems: traveler.missingItems,
+          notes: traveler.notes,
+          channel: traveler.channel,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate draft');
+      }
+
+      const data = await response.json();
+      setGeneratedDrafts((prev) => ({
+        ...prev,
+        [traveler.id]: data,
+      }));
+      setExpandedCards((prev) => new Set(prev).add(traveler.id));
+    } catch (err) {
+      console.error('Error generating draft:', err);
+    } finally {
+      setLoadingDrafts((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(traveler.id);
+        return newSet;
+      });
     }
   };
 
@@ -137,6 +184,8 @@ export default function DigestPage() {
   const TravelerCard = ({ traveler }: { traveler: AnalyzedTraveler }) => {
     const isExpanded = expandedCards.has(traveler.id);
     const isDone = markedDone.has(traveler.id);
+    const isLoadingDraft = loadingDrafts.has(traveler.id);
+    const draft = generatedDrafts[traveler.id];
 
     const getDaysColor = (days: number) => {
       if (days <= 7) return 'text-red-600 bg-red-50';
@@ -201,12 +250,46 @@ export default function DigestPage() {
               >
                 Open Details →
               </Link>
-              {traveler.message && (
+              {draft ? (
                 <button
                   onClick={() => toggleCard(traveler.id)}
                   className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                 >
                   {isExpanded ? 'Hide Draft' : 'View Draft'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => generateDraft(traveler)}
+                  disabled={isLoadingDraft}
+                  className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:bg-blue-50 disabled:text-blue-400 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                >
+                  {isLoadingDraft ? (
+                    <>
+                      <svg
+                        className="animate-spin h-3.5 w-3.5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Draft'
+                  )}
                 </button>
               )}
               <button
@@ -224,22 +307,20 @@ export default function DigestPage() {
         </div>
 
         {/* Expanded Message Draft */}
-        {isExpanded && traveler.message && (
+        {isExpanded && draft && (
           <div className="border-t border-gray-200 bg-gray-50 p-4">
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
                 <p className="text-xs text-gray-500">Subject</p>
-                <p className="text-sm font-medium text-gray-900">{traveler.message.subject}</p>
+                <p className="text-sm font-medium text-gray-900">{draft.subject}</p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{traveler.message.body}</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{draft.body}</p>
               </div>
             </div>
             <button
               onClick={() => {
-                navigator.clipboard.writeText(
-                  `Subject: ${traveler.message!.subject}\n\n${traveler.message!.body}`
-                );
+                navigator.clipboard.writeText(`Subject: ${draft.subject}\n\n${draft.body}`);
               }}
               className="mt-3 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
             >
@@ -359,7 +440,7 @@ export default function DigestPage() {
                 />
               </svg>
               <p className="text-gray-600 font-medium">Analyzing {sampleTravelers.length} travelers...</p>
-              <p className="text-gray-400 text-sm mt-1">This may take a moment</p>
+              <p className="text-gray-400 text-sm mt-1">This should be quick</p>
             </div>
           </div>
         )}

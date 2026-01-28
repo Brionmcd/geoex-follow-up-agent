@@ -33,31 +33,9 @@ Assign "none" when:
 - **Critical items**: Passport scan, Medical form, Signed waiver
 - **Non-critical items**: Dietary preferences, Emergency contact
 
-## Message Guidelines
-
-For CRITICAL and ATTENTION priorities:
-- Generate a complete draft message
-- Match tone to situation (see below)
-- Include specific missing items
-- Make next steps clear
-
-For WAIT priority:
-- Just provide reasoning, no draft message needed
-- Explain why waiting is appropriate
-
-### Tone by Contact Number
-- **0 contacts**: Warm, helpful, excited about their upcoming trip
-- **1-2 contacts**: Still friendly, acknowledge they're busy, make it easy
-- **3+ contacts**: More direct, express genuine concern, suggest phone call
-
-### Special Considerations
-- VIP clients: Extra courteous, offer to make it convenient for them
-- First-time travelers: More explanation about why items are needed
-- Repeat customers: More casual, reference their experience with GeoEx
-- Couples/families: Address appropriately, note who handles logistics if mentioned
-- Travelers with notes about preferences: Honor those (e.g., "prefers text", "best after 6pm")
-
 ## Output Format
+
+IMPORTANT: Do NOT generate draft messages. Only provide classification and reasoning. Messages will be generated on-demand later.
 
 You must respond with valid JSON in this exact format:
 {
@@ -68,11 +46,7 @@ You must respond with valid JSON in this exact format:
       "shouldFollowUp": true | false,
       "urgency": "low" | "medium" | "high",
       "channel": "email" | "phone",
-      "reasoning": "Brief explanation of your decision",
-      "message": {
-        "subject": "Email subject line",
-        "body": "Full email message"
-      } or null if priority is "wait" or "none"
+      "reasoning": "Brief 1-2 sentence explanation"
     }
   ],
   "summary": {
@@ -94,8 +68,5 @@ Return travelers sorted in this order:
 ## Important Notes
 - Be decisive — staff need clear guidance on where to focus
 - Don't recommend follow-up if file is complete
-- Consider the human element — people are busy, be understanding but persistent when needed
 - Phone calls are reserved for urgent situations or when email clearly isn't working
-- Each traveler gets evaluated independently, but consider the overall workload when setting priorities
-- Keep reasoning brief (1-2 sentences max) to speed up processing
-- For "wait" priority, set message to null — no draft needed since they can wait`;
+- Keep reasoning brief (1-2 sentences max)`;
