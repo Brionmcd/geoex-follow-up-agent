@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { sampleResponses } from '@/lib/sampleResponses';
+import { sampleResponses, SampleResponse } from '@/lib/sampleResponses';
 
 interface InterpretationResult {
   summary: string;
@@ -24,10 +24,10 @@ interface InterpretationResult {
 }
 
 const sentimentConfig = {
-  positive: { emoji: '😊', label: 'Positive', color: 'bg-green-100 text-green-800' },
-  neutral: { emoji: '😐', label: 'Neutral', color: 'bg-gray-100 text-gray-800' },
-  concerned: { emoji: '😟', label: 'Concerned', color: 'bg-amber-100 text-amber-800' },
-  frustrated: { emoji: '😤', label: 'Frustrated', color: 'bg-red-100 text-red-800' },
+  positive: { emoji: '😊', label: 'Positive', color: 'bg-green-100 text-green-800', borderColor: 'border-green-200' },
+  neutral: { emoji: '😐', label: 'Neutral', color: 'bg-gray-100 text-gray-800', borderColor: 'border-gray-200' },
+  concerned: { emoji: '😟', label: 'Concerned', color: 'bg-amber-100 text-amber-800', borderColor: 'border-amber-200' },
+  frustrated: { emoji: '😤', label: 'Frustrated', color: 'bg-red-100 text-red-800', borderColor: 'border-red-200' },
 };
 
 const actionConfig = {
@@ -46,6 +46,16 @@ const urgencyConfig = {
   high: { label: 'High', color: 'bg-red-100 text-red-700' },
 };
 
+// Loading messages that rotate
+const LOADING_MESSAGES = [
+  'Reading the message carefully...',
+  'Analyzing tone and sentiment...',
+  'Identifying key commitments or requests...',
+  'Checking for signs of frustration or confusion...',
+  'Determining if action is needed...',
+  'Formulating recommendation...',
+];
+
 export default function InterpretPage() {
   const [responseText, setResponseText] = useState('');
   const [travelerName, setTravelerName] = useState('');
@@ -54,10 +64,12 @@ export default function InterpretPage() {
   const [additionalContext, setAdditionalContext] = useState('');
   const [showContext, setShowContext] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   const [result, setResult] = useState<InterpretationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedReply, setCopiedReply] = useState(false);
   const [showSamples, setShowSamples] = useState(false);
+  const [showCapabilities, setShowCapabilities] = useState(false);
 
   const documentOptions = [
     'Passport scan',
@@ -66,6 +78,17 @@ export default function InterpretPage() {
     'Emergency contact',
     'Dietary preferences',
   ];
+
+  // Rotate loading messages
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const interval = setInterval(() => {
+      setLoadingMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const handleItemToggle = (item: string) => {
     setRequestedItems((prev) =>
@@ -86,6 +109,7 @@ export default function InterpretPage() {
     }
 
     setIsLoading(true);
+    setLoadingMessageIndex(0);
     setError(null);
     setResult(null);
 
@@ -124,18 +148,39 @@ export default function InterpretPage() {
     }
   };
 
+  // Get frustration signals for display
+  const getFrustrationSignals = () => {
+    if (result?.sentiment !== 'frustrated') return null;
+    const signals = [];
+    const text = responseText.toLowerCase();
+    if (text.includes('third') || text.includes('again') || text.includes('already')) {
+      signals.push('"Third email" or "again" — they\'re counting contacts');
+    }
+    if (text.includes('already told') || text.includes('already said')) {
+      signals.push('"Already told you" — feeling unheard');
+    }
+    if (text.includes('stop') || text.includes('please stop')) {
+      signals.push('"Please stop" — explicit request to change approach');
+    }
+    if (text.includes('frustrated') || text.includes('annoying') || text.includes('overwhelming')) {
+      signals.push('Direct frustration language detected');
+    }
+    return signals.length > 0 ? signals : null;
+  };
+
+  const frustrationSignals = getFrustrationSignals();
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">G</span>
-              </div>
-              <span className="text-xl font-semibold text-slate-900">GeoEx</span>
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/" className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">GeoEx</Link>
+              <span className="text-gray-300">|</span>
+              <span className="text-gray-500">Response Interpreter</span>
+            </div>
             <nav className="flex items-center gap-4">
               <Link
                 href="/follow-up"
@@ -154,13 +199,70 @@ export default function InterpretPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 py-8 flex-1">
         {/* Title */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Response Interpreter</h1>
           <p className="text-slate-600">
             Paste a traveler&apos;s email response to understand what they need
           </p>
+        </div>
+
+        {/* AI Capabilities Card (Collapsible) */}
+        <div className="border border-dashed border-gray-300 rounded-lg overflow-hidden mb-6">
+          <button
+            onClick={() => setShowCapabilities(!showCapabilities)}
+            className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+          >
+            <span className="text-sm text-gray-600 flex items-center gap-2">
+              <span>🧠</span>
+              What this AI does
+            </span>
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              {showCapabilities ? 'Hide' : 'Show'}
+              <svg
+                className={`w-4 h-4 transition-transform ${showCapabilities ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </button>
+          {showCapabilities && (
+            <div className="px-4 py-4 bg-white border-t border-gray-200">
+              <p className="text-sm text-gray-600 mb-3">
+                Paste any traveler response and the AI will:
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span className="text-gray-700">Understand what they&apos;re really saying (even if vague)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span className="text-gray-700">Detect frustration, confusion, or concerns</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span className="text-gray-700">Identify commitments (&ldquo;I&apos;ll send it tonight&rdquo;)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span className="text-gray-700">Spot potential problems (cancellation, issues)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span className="text-gray-700">Recommend your next action</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span className="text-gray-700">Draft a reply if needed</span>
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Input Section */}
@@ -276,27 +378,32 @@ export default function InterpretPage() {
           <button
             onClick={handleInterpret}
             disabled={isLoading || !responseText.trim()}
-            className="mt-6 w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="mt-6 w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed flex flex-col items-center justify-center gap-1"
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Interpreting...
+                <div className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span>Interpreting response...</span>
+                </div>
+                <span className="text-blue-200 text-sm">
+                  {LOADING_MESSAGES[loadingMessageIndex]}
+                </span>
               </>
             ) : (
               'Interpret Response'
@@ -359,118 +466,179 @@ export default function InterpretPage() {
 
         {/* Results Section */}
         {result && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-            <h2 className="text-lg font-semibold text-slate-900">Interpretation</h2>
-
-            {/* Summary */}
-            <div>
-              <h3 className="text-sm font-medium text-slate-500 mb-1">What they said</h3>
-              <p className="text-slate-900">{result.summary}</p>
-            </div>
-
-            {/* Interpretation */}
-            <div>
-              <h3 className="text-sm font-medium text-slate-500 mb-1">What this means</h3>
-              <p className="text-slate-900">{result.interpretation}</p>
-            </div>
-
-            {/* Sentiment & Urgency Row */}
-            <div className="flex flex-wrap gap-4">
-              {/* Sentiment */}
-              <div>
-                <h3 className="text-sm font-medium text-slate-500 mb-2">Sentiment</h3>
-                <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${sentimentConfig[result.sentiment].color}`}
-                >
-                  <span>{sentimentConfig[result.sentiment].emoji}</span>
-                  {sentimentConfig[result.sentiment].label}
-                </span>
-              </div>
-
-              {/* Urgency */}
-              <div>
-                <h3 className="text-sm font-medium text-slate-500 mb-2">Urgency</h3>
-                <span
-                  className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${urgencyConfig[result.urgency].color}`}
-                >
-                  {urgencyConfig[result.urgency].label}
-                </span>
-              </div>
-            </div>
-
-            {/* Recommended Action */}
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <h3 className="text-sm font-medium text-slate-500 mb-2">Recommended Action</h3>
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">{actionConfig[result.recommended_action.type].icon}</span>
-                <div>
-                  <p className="font-medium text-slate-900">
-                    {actionConfig[result.recommended_action.type].label}
-                  </p>
-                  <p className="text-slate-600 text-sm mt-0.5">
-                    {result.recommended_action.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Key Details */}
-            {(result.key_details.commitments.length > 0 ||
-              result.key_details.requests.length > 0 ||
-              result.key_details.concerns.length > 0 ||
-              result.key_details.dates_mentioned.length > 0) && (
-              <div>
-                <h3 className="text-sm font-medium text-slate-500 mb-2">Key Details Extracted</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {result.key_details.commitments.length > 0 && (
-                    <div className="p-3 bg-green-50 rounded-lg">
-                      <p className="text-xs font-medium text-green-700 mb-1">Commitments</p>
-                      <ul className="text-sm text-green-800">
-                        {result.key_details.commitments.map((c, i) => (
-                          <li key={i}>• {c}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {result.key_details.requests.length > 0 && (
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <p className="text-xs font-medium text-blue-700 mb-1">Requests</p>
-                      <ul className="text-sm text-blue-800">
-                        {result.key_details.requests.map((r, i) => (
-                          <li key={i}>• {r}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {result.key_details.concerns.length > 0 && (
-                    <div className="p-3 bg-amber-50 rounded-lg">
-                      <p className="text-xs font-medium text-amber-700 mb-1">Concerns</p>
-                      <ul className="text-sm text-amber-800">
-                        {result.key_details.concerns.map((c, i) => (
-                          <li key={i}>• {c}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {result.key_details.dates_mentioned.length > 0 && (
-                    <div className="p-3 bg-purple-50 rounded-lg">
-                      <p className="text-xs font-medium text-purple-700 mb-1">Dates Mentioned</p>
-                      <ul className="text-sm text-purple-800">
-                        {result.key_details.dates_mentioned.map((d, i) => (
-                          <li key={i}>• {d}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+          <div className="space-y-4">
+            {/* Frustration Warning (if detected) */}
+            {result.sentiment === 'frustrated' && frustrationSignals && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">⚠️</span>
+                  <div>
+                    <h3 className="font-semibold text-red-900 mb-2">
+                      I detected frustration in this response
+                    </h3>
+                    <p className="text-sm text-red-800 mb-2">Signals I noticed:</p>
+                    <ul className="text-sm text-red-700 space-y-1">
+                      {frustrationSignals.map((signal, i) => (
+                        <li key={i}>• {signal}</li>
+                      ))}
+                    </ul>
+                    <p className="text-sm text-red-800 mt-3 font-medium">
+                      This traveler needs a different approach. More emails will likely make things worse.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
 
+            {/* Main Interpretation Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* What they said */}
+              <div className="p-6 border-b border-slate-100">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">📝</span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-500 mb-1">What they said</h3>
+                    <p className="text-slate-900">&ldquo;{result.summary}&rdquo;</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* What I'm reading between the lines */}
+              <div className="p-6 border-b border-slate-100 bg-slate-50">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">🔍</span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-500 mb-1">What I&apos;m reading between the lines</h3>
+                    <p className="text-slate-800 italic">{result.interpretation}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sentiment & Urgency */}
+              <div className="p-6 border-b border-slate-100">
+                <div className="flex flex-wrap gap-6">
+                  {/* Sentiment */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${sentimentConfig[result.sentiment].color}`}>
+                      <span className="text-2xl">{sentimentConfig[result.sentiment].emoji}</span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Sentiment</p>
+                      <p className="font-medium text-slate-900">{sentimentConfig[result.sentiment].label}</p>
+                    </div>
+                  </div>
+
+                  {/* Urgency */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${urgencyConfig[result.urgency].color}`}>
+                      <span className="text-lg">
+                        {result.urgency === 'high' ? '🔴' : result.urgency === 'medium' ? '🟡' : '⚪'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Urgency</p>
+                      <p className="font-medium text-slate-900">{urgencyConfig[result.urgency].label}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Details */}
+              {(result.key_details.commitments.length > 0 ||
+                result.key_details.requests.length > 0 ||
+                result.key_details.concerns.length > 0 ||
+                result.key_details.dates_mentioned.length > 0) && (
+                <div className="p-6 border-b border-slate-100">
+                  <div className="flex items-start gap-3 mb-4">
+                    <span className="text-xl">📌</span>
+                    <h3 className="text-sm font-semibold text-slate-500">Key details I extracted</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-9">
+                    {result.key_details.commitments.length > 0 && (
+                      <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                        <p className="text-xs font-medium text-green-700 mb-1">Commitments</p>
+                        <ul className="text-sm text-green-800">
+                          {result.key_details.commitments.map((c, i) => (
+                            <li key={i}>• {c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.key_details.requests.length > 0 && (
+                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <p className="text-xs font-medium text-blue-700 mb-1">Requests</p>
+                        <ul className="text-sm text-blue-800">
+                          {result.key_details.requests.map((r, i) => (
+                            <li key={i}>• {r}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.key_details.concerns.length > 0 && (
+                      <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <p className="text-xs font-medium text-amber-700 mb-1">Concerns</p>
+                        <ul className="text-sm text-amber-800">
+                          {result.key_details.concerns.map((c, i) => (
+                            <li key={i}>• {c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.key_details.dates_mentioned.length > 0 && (
+                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                        <p className="text-xs font-medium text-purple-700 mb-1">Dates Mentioned</p>
+                        <ul className="text-sm text-purple-800">
+                          {result.key_details.dates_mentioned.map((d, i) => (
+                            <li key={i}>• {d}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* My Recommendation */}
+              <div className="p-6 bg-blue-50 border-b border-blue-100">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">✅</span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-blue-900 mb-2">My recommendation</h3>
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">{actionConfig[result.recommended_action.type].icon}</span>
+                      <div>
+                        <p className="font-medium text-blue-900">
+                          {actionConfig[result.recommended_action.type].label}
+                        </p>
+                        <p className="text-blue-800 text-sm mt-0.5">
+                          {result.recommended_action.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Reasoning */}
+              <div className="p-6 bg-slate-50">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">🧠</span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-500 mb-1">How I reached this conclusion</h3>
+                    <p className="text-sm text-slate-600 italic">&ldquo;{result.reasoning}&rdquo;</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Suggested Reply */}
             {result.suggested_reply && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-slate-500">Suggested Reply</h3>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">💬</span>
+                    <h3 className="font-medium text-slate-900">Suggested Reply</h3>
+                  </div>
                   <button
                     onClick={handleCopyReply}
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
@@ -502,20 +670,23 @@ export default function InterpretPage() {
                     )}
                   </button>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="p-6">
                   <p className="text-slate-700 whitespace-pre-wrap">{result.suggested_reply}</p>
                 </div>
               </div>
             )}
-
-            {/* Reasoning */}
-            <div className="pt-4 border-t border-slate-200">
-              <h3 className="text-sm font-medium text-slate-500 mb-1">AI Reasoning</h3>
-              <p className="text-sm text-slate-600">{result.reasoning}</p>
-            </div>
           </div>
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 bg-white mt-auto">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <p className="text-center text-xs text-gray-400">
+            Powered by AI · Recommendations are suggestions — use your judgment for final decisions
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

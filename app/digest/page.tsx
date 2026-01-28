@@ -28,8 +28,21 @@ interface DigestResult {
   };
 }
 
+// Loading messages that rotate to show AI activity
+const LOADING_MESSAGES = [
+  'Reading traveler profiles...',
+  'Checking document submission status...',
+  'Reviewing past communication history...',
+  'Calculating days until each departure...',
+  'Evaluating response patterns...',
+  'Identifying travelers who need attention...',
+  'Prioritizing by urgency and context...',
+  'Preparing personalized recommendations...',
+];
+
 export default function DigestPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   const [result, setResult] = useState<DigestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -48,6 +61,17 @@ export default function DigestPage() {
     day: 'numeric',
   });
 
+  // Rotate loading messages
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const interval = setInterval(() => {
+      setLoadingMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
   // Load digest on mount
   useEffect(() => {
     generateDigest();
@@ -55,6 +79,7 @@ export default function DigestPage() {
 
   const generateDigest = async () => {
     setIsLoading(true);
+    setLoadingMessageIndex(0);
     setError(null);
     setGeneratedDrafts({});
 
@@ -166,6 +191,12 @@ export default function DigestPage() {
   const attentionTravelers = result?.travelers.filter((t) => t.priority === 'attention') || [];
   const waitTravelers = result?.travelers.filter((t) => t.priority === 'wait') || [];
 
+  // Calculate stats for the header
+  const totalTravelers = sampleTravelers.length;
+  const totalPreviousContacts = sampleTravelers.reduce((sum, t) => sum + t.previousContacts, 0);
+  const totalMissingItems = sampleTravelers.reduce((sum, t) => sum + t.missingItems.length, 0);
+  const uniqueTrips = new Set(sampleTravelers.map((t) => t.tripName)).size;
+
   // Build URL for Follow-Up Agent with traveler data
   const buildFollowUpUrl = (traveler: AnalyzedTraveler) => {
     const params = new URLSearchParams({
@@ -238,8 +269,13 @@ export default function DigestPage() {
                 )}
               </div>
 
-              {/* Reasoning */}
-              <p className="text-sm text-gray-600 mt-2">{traveler.reasoning}</p>
+              {/* AI Insight - More prominent reasoning */}
+              <div className="mt-3 p-2.5 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">💡 AI Insight:</span>{' '}
+                  <span className="italic">&ldquo;{traveler.reasoning}&rdquo;</span>
+                </p>
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -387,7 +423,7 @@ export default function DigestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -419,10 +455,7 @@ export default function DigestPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Description */}
-        <p className="text-gray-600">Your prioritized action list for today</p>
-
+      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6 flex-1">
         {/* Loading State */}
         {isLoading && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
@@ -447,8 +480,10 @@ export default function DigestPage() {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                 />
               </svg>
-              <p className="text-gray-600 font-medium">Analyzing {sampleTravelers.length} travelers...</p>
-              <p className="text-gray-400 text-sm mt-1">This should be quick</p>
+              <p className="text-gray-900 font-medium mb-2">Analyzing {sampleTravelers.length} travelers...</p>
+              <p className="text-blue-600 text-sm h-5 transition-opacity duration-300">
+                {LOADING_MESSAGES[loadingMessageIndex]}
+              </p>
             </div>
           </div>
         )}
@@ -469,6 +504,29 @@ export default function DigestPage() {
         {/* Results */}
         {result && !isLoading && (
           <>
+            {/* AI Analysis Summary Header */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">🧠</span>
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2">AI Analysis Complete</h2>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    Analyzed <strong>{totalTravelers} travelers</strong> across{' '}
+                    <strong>{uniqueTrips} upcoming departures</strong>. Reviewed{' '}
+                    <strong>{totalPreviousContacts} past communications</strong> and{' '}
+                    <strong>{totalMissingItems} pending documents</strong>.
+                    {result.summary.critical > 0 && (
+                      <span className="text-red-700">
+                        {' '}Found <strong>{result.summary.critical} critical situation{result.summary.critical > 1 ? 's' : ''}</strong> requiring immediate action.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Summary Stats */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -560,6 +618,15 @@ export default function DigestPage() {
           </>
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 bg-white mt-auto">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <p className="text-center text-xs text-gray-400">
+            Powered by AI · Recommendations are suggestions — use your judgment for final decisions
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
