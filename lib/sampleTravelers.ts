@@ -10,7 +10,7 @@ export interface Traveler {
 }
 
 export const sampleTravelers: Traveler[] = [
-  // CRITICAL CASES
+  // CRITICAL CASES (4)
   {
     id: "t001",
     name: "Marcus Chen",
@@ -52,7 +52,7 @@ export const sampleTravelers: Traveler[] = [
     notes: "Attorney, very busy schedule. Best reached after 6pm."
   },
 
-  // NEEDS ATTENTION CASES
+  // NEEDS ATTENTION CASES (4)
   {
     id: "t005",
     name: "Robert Thompson",
@@ -74,16 +74,6 @@ export const sampleTravelers: Traveler[] = [
     notes: "Repeat customer - did Patagonia trip last year. Knows the process."
   },
   {
-    id: "t007",
-    name: "Michael O'Brien",
-    email: "mobrien@university.edu",
-    tripName: "New Zealand Adventure",
-    daysUntilDeparture: 18,
-    previousContacts: 2,
-    missingItems: ["Passport scan"],
-    notes: "Professor, currently on sabbatical. Passport renewal in progress."
-  },
-  {
     id: "t008",
     name: "Amanda Foster",
     email: "afoster@design.co",
@@ -92,16 +82,6 @@ export const sampleTravelers: Traveler[] = [
     previousContacts: 0,
     missingItems: ["Passport scan", "Medical form"],
     notes: "First-time international traveler. May need extra guidance."
-  },
-  {
-    id: "t009",
-    name: "James & Carol Wilson",
-    email: "wilsons@retirement.net",
-    tripName: "Galápagos Islands",
-    daysUntilDeparture: 25,
-    previousContacts: 1,
-    missingItems: ["Medical form", "Signed waiver"],
-    notes: "Retired couple, celebrating 40th anniversary. Carol has mobility considerations."
   },
   {
     id: "t010",
@@ -114,7 +94,7 @@ export const sampleTravelers: Traveler[] = [
     notes: "VIP client - CEO of tech company. Personal assistant handles communications."
   },
 
-  // CAN WAIT CASES
+  // CAN WAIT CASES (2)
   {
     id: "t011",
     name: "Kevin Martinez",
@@ -124,36 +104,6 @@ export const sampleTravelers: Traveler[] = [
     previousContacts: 0,
     missingItems: ["Dietary preferences"],
     notes: "Just booked last week. Plenty of time."
-  },
-  {
-    id: "t012",
-    name: "Susan Lee",
-    email: "susanlee@gmail.com",
-    tripName: "Norway Fjords",
-    daysUntilDeparture: 42,
-    previousContacts: 1,
-    missingItems: ["Emergency contact", "Dietary preferences"],
-    notes: "Repeat customer - third trip with GeoEx. Always submits on time."
-  },
-  {
-    id: "t013",
-    name: "Thomas Anderson",
-    email: "t.anderson@matrix.com",
-    tripName: "Egypt Pyramids",
-    daysUntilDeparture: 45,
-    previousContacts: 0,
-    missingItems: ["Medical form"],
-    notes: "Recently booked. Said he'd complete forms this weekend."
-  },
-  {
-    id: "t014",
-    name: "Rachel Green",
-    email: "rachel.green@fashion.com",
-    tripName: "Italian Riviera",
-    daysUntilDeparture: 52,
-    previousContacts: 0,
-    missingItems: ["Dietary preferences"],
-    notes: "Only minor item missing. Mentioned she's vegetarian in booking notes."
   },
   {
     id: "t015",
@@ -166,7 +116,7 @@ export const sampleTravelers: Traveler[] = [
     notes: "Trip is far out. Just booked, will have time to complete everything."
   },
 
-  // COMPLETE (should be filtered out)
+  // COMPLETE - should be filtered out (1)
   {
     id: "t016",
     name: "Laura Bennett",
@@ -176,25 +126,5 @@ export const sampleTravelers: Traveler[] = [
     previousContacts: 2,
     missingItems: [],
     notes: "All documents complete. Ready to go!"
-  },
-  {
-    id: "t017",
-    name: "Christopher Davis",
-    email: "cdavis@business.com",
-    tripName: "Australian Outback",
-    daysUntilDeparture: 30,
-    previousContacts: 1,
-    missingItems: [],
-    notes: "Completed everything after first reminder. Repeat customer."
-  },
-  {
-    id: "t018",
-    name: "Maria Santos",
-    email: "maria.santos@email.com",
-    tripName: "Amazon Rainforest",
-    daysUntilDeparture: 15,
-    previousContacts: 0,
-    missingItems: [],
-    notes: "Proactively submitted all documents at booking. First-timer but very organized."
   },
 ];

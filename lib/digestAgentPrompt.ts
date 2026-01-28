@@ -96,4 +96,6 @@ Return travelers sorted in this order:
 - Don't recommend follow-up if file is complete
 - Consider the human element — people are busy, be understanding but persistent when needed
 - Phone calls are reserved for urgent situations or when email clearly isn't working
-- Each traveler gets evaluated independently, but consider the overall workload when setting priorities`;
+- Each traveler gets evaluated independently, but consider the overall workload when setting priorities
+- Keep reasoning brief (1-2 sentences max) to speed up processing
+- For "wait" priority, set message to null — no draft needed since they can wait`;
