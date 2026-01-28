@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { FOLLOW_UP_AGENT_PROMPT } from '@/lib/agentPrompt';
+import { sugatiConfig } from '@/lib/config/sugati';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -9,6 +10,11 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
+    // Log data source
+    console.log(
+      `[Generate API] Using ${sugatiConfig.useLiveData ? 'Sugati/Salesforce' : 'sample'} data`
+    );
+
     const body = await request.json();
 
     const {
@@ -73,15 +79,9 @@ Based on this information, please provide your recommendation in the specified J
 
     // Return a helpful error message
     if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
   }
 }

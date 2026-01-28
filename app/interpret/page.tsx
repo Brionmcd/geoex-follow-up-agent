@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { sampleResponses, SampleResponse } from '@/lib/sampleResponses';
+import { DataSourceIndicator } from '@/components/DataSourceIndicator';
 
 interface InterpretationResult {
   summary: string;
@@ -46,9 +47,11 @@ const urgencyConfig = {
   high: { label: 'High', color: 'bg-red-100 text-red-700' },
 };
 
-// Loading messages that rotate
+// Loading messages that rotate (reference Sugati)
 const LOADING_MESSAGES = [
-  'Reading the message carefully...',
+  'Analyzing response...',
+  'Cross-referencing with Sugati records...',
+  'Checking traveler history in Salesforce...',
   'Analyzing tone and sentiment...',
   'Identifying key commitments or requests...',
   'Checking for signs of frustration or confusion...',
@@ -71,6 +74,10 @@ export default function InterpretPage() {
   const [showSamples, setShowSamples] = useState(false);
   const [showCapabilities, setShowCapabilities] = useState(false);
   const [isInputExpanded, setIsInputExpanded] = useState(true);
+
+  // Note: In production, this would come from API response
+  // For now, using sample data (isLive = false)
+  const isLiveData = false;
 
   const documentOptions = [
     'Passport scan',
@@ -227,6 +234,11 @@ export default function InterpretPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 flex-1">
+        {/* Data Source Indicator */}
+        <div className="flex justify-end mb-4">
+          <DataSourceIndicator isLive={isLiveData} />
+        </div>
+
         {/* Title - Only show when no results */}
         {!result && (
           <div className="mb-6">

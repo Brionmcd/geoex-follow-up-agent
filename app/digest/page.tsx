@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { sampleTravelers, Traveler } from '@/lib/sampleTravelers';
+import { DataSourceIndicator, SyncStatus } from '@/components/DataSourceIndicator';
 
 // Extended traveler type with AI analysis
 interface AnalyzedTraveler extends Traveler {
@@ -28,14 +29,16 @@ interface DigestResult {
   };
 }
 
-// Loading messages that rotate to show AI activity
+// Loading messages that rotate to show AI activity (reference Sugati)
 const LOADING_MESSAGES = [
-  'Reading traveler profiles...',
-  'Checking document submission status...',
-  'Reviewing past communication history...',
-  'Calculating days until each departure...',
-  'Evaluating response patterns...',
-  'Identifying travelers who need attention...',
+  'Connecting to Sugati...',
+  'Syncing traveler data from Salesforce...',
+  'Pulling trip records and departure dates...',
+  'Checking document completion status in Sugati...',
+  'Retrieving communication history...',
+  'Analyzing patterns across bookings...',
+  'Calculating days until departures...',
+  'Identifying travelers needing attention...',
   'Prioritizing by urgency and context...',
   'Preparing personalized recommendations...',
 ];
@@ -52,6 +55,11 @@ export default function DigestPage() {
   const [generatedDrafts, setGeneratedDrafts] = useState<Record<string, { subject: string; body: string }>>(
     {}
   );
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+
+  // Note: In production, this would come from API response
+  // For now, using sample data (isLive = false)
+  const isLiveData = false;
 
   // Format today's date
   const today = new Date().toLocaleDateString('en-US', {
@@ -101,6 +109,7 @@ export default function DigestPage() {
 
       const data = await response.json();
       setResult(data);
+      setLastSyncTime(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -510,6 +519,12 @@ export default function DigestPage() {
         {/* Results */}
         {result && !isLoading && (
           <>
+            {/* Data Source Indicator */}
+            <div className="flex items-center justify-between">
+              <DataSourceIndicator isLive={isLiveData} />
+              <SyncStatus lastSyncTime={lastSyncTime || undefined} isLive={isLiveData} />
+            </div>
+
             {/* AI Analysis Summary Header */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
               <div className="flex items-start gap-4">

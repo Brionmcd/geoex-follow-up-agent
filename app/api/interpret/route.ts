@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { INTERPRET_AGENT_PROMPT } from '@/lib/interpretAgentPrompt';
+import { sugatiConfig } from '@/lib/config/sugati';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -8,6 +9,11 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
+    // Log data source
+    console.log(
+      `[Interpret API] Using ${sugatiConfig.useLiveData ? 'Sugati/Salesforce' : 'sample'} data`
+    );
+
     const body = await request.json();
     const { responseText, travelerName, requestedItems, previousContacts, additionalContext } =
       body;

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { ANOMALY_AGENT_PROMPT } from '@/lib/anomalyAgentPrompt';
-import { getAnomalyDetectionData } from '@/lib/sampleData';
+import { tripService } from '@/lib/services/tripService';
+import { sugatiConfig } from '@/lib/config/sugati';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -9,8 +10,13 @@ const anthropic = new Anthropic({
 
 export async function POST() {
   try {
-    // Get all the data for anomaly detection
-    const data = getAnomalyDetectionData();
+    // Log data source
+    console.log(
+      `[Anomalies API] Using ${sugatiConfig.useLiveData ? 'Sugati/Salesforce' : 'sample'} data`
+    );
+
+    // Get all the data for anomaly detection via the service layer
+    const data = await tripService.getAnomalyDetectionData();
 
     const userPrompt = `Analyze this traveler and trip data to detect anomalies, patterns, and outliers that need attention.
 
@@ -27,7 +33,7 @@ ${JSON.stringify(data.trips, null, 2)}
 
 ## Today's Date
 
-January 28, 2025 (use this to calculate days until departure)
+${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} (use this to calculate days until departure)
 
 ## Your Task
 

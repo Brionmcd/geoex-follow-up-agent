@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { DataSourceIndicator, SyncStatus } from '@/components/DataSourceIndicator';
 
 interface AnomalySummary {
   tripsAnalyzed: number;
@@ -31,17 +32,18 @@ interface AnomalyResult {
   anomalies: Anomaly[];
 }
 
+// Loading messages that reference Sugati
 const LOADING_MESSAGES = [
-  'Scanning for anomalies...',
-  'Analyzing patterns across 28 travelers...',
-  'Comparing completion rates to historical baselines...',
-  'Checking for unusual behavior changes...',
-  'Looking for correlated issues across trips...',
+  'Connecting to Sugati...',
+  'Pulling all active trip data from Salesforce...',
+  'Loading traveler records from Sugati...',
+  'Analyzing document completion patterns...',
+  'Comparing against historical baselines...',
+  'Checking for behavior anomalies...',
   'Identifying statistical outliers...',
-  'Examining response patterns over time...',
-  'Detecting timing correlations...',
+  'Correlating timing patterns across trips...',
   'Cross-referencing VIP behavior patterns...',
-  'Finalizing anomaly report...',
+  'Compiling findings...',
 ];
 
 const ANOMALY_TYPE_CONFIG = {
@@ -64,6 +66,11 @@ export default function AnomaliesPage() {
   const [error, setError] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
   const [hasScanned, setHasScanned] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+
+  // Note: In production, this would come from API response
+  // For now, using sample data (isLive = false)
+  const isLiveData = false;
 
   // Rotate loading messages
   useEffect(() => {
@@ -97,6 +104,7 @@ export default function AnomaliesPage() {
       }
 
       setResult(data);
+      setLastSyncTime(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
@@ -256,6 +264,12 @@ export default function AnomaliesPage() {
         {/* Results */}
         {result && (
           <>
+            {/* Data Source Indicator */}
+            <div className="flex items-center justify-between mb-4">
+              <DataSourceIndicator isLive={isLiveData} />
+              <SyncStatus lastSyncTime={lastSyncTime || undefined} isLive={isLiveData} />
+            </div>
+
             {/* Summary Stats */}
             <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
               <div className="flex items-center gap-2 mb-4">

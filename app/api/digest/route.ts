@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { DIGEST_AGENT_PROMPT } from '@/lib/digestAgentPrompt';
 import { Traveler } from '@/lib/sampleTravelers';
+import { travelerService } from '@/lib/services/travelerService';
+import { sugatiConfig } from '@/lib/config/sugati';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -9,11 +11,45 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
+    // Log data source
+    console.log(
+      `[Digest API] Using ${sugatiConfig.useLiveData ? 'Sugati/Salesforce' : 'sample'} data`
+    );
+
     const body = await request.json();
-    const { travelers } = body as { travelers: Traveler[] };
+    let travelers: Traveler[];
+
+    // If travelers are provided in the request, use them (for backward compatibility)
+    // Otherwise, fetch from the service layer
+    if (body.travelers && body.travelers.length > 0) {
+      travelers = body.travelers;
+      console.log('[Digest API] Using travelers from request body');
+    } else {
+      // Fetch travelers needing attention from the service layer
+      const serviceTravelers = await travelerService.getTravelersNeedingAttention();
+      // Map to the expected Traveler interface
+      travelers = serviceTravelers.map((t) => ({
+        id: t.id,
+        name: t.name,
+        email: t.email,
+        tripId: t.tripId,
+        tripName: t.tripName,
+        daysUntilDeparture: t.daysUntilDeparture,
+        previousContacts: t.previousContacts,
+        daysSinceLastContact: t.daysSinceLastContact,
+        lastResponseDaysAgo: t.lastResponseDaysAgo,
+        missingItems: t.missingItems,
+        notes: t.notes,
+        isVip: t.isVip,
+        previousTrips: t.previousTrips,
+      }));
+      console.log(`[Digest API] Fetched ${travelers.length} travelers from service`);
+    }
 
     // Build the user prompt with all traveler details
-    const travelersList = travelers.map((t, index) => `
+    const travelersList = travelers
+      .map(
+        (t, index) => `
 ### Traveler ${index + 1}: ${t.name}
 - **ID:** ${t.id}
 - **Email:** ${t.email}
@@ -22,7 +58,9 @@ export async function POST(request: NextRequest) {
 - **Previous follow-up contacts:** ${t.previousContacts}
 - **Missing items:** ${t.missingItems.length > 0 ? t.missingItems.join(', ') : 'None (file complete)'}
 - **Notes:** ${t.notes || 'No additional notes'}
-`).join('\n');
+`
+      )
+      .join('\n');
 
     const userPrompt = `Please evaluate the following ${travelers.length} travelers and create a prioritized daily action list.
 
@@ -61,21 +99,23 @@ Analyze each traveler, assign priorities, generate draft messages where appropri
     const result = JSON.parse(jsonMatch[0]);
 
     // Merge the AI results with the original traveler data
-    const enrichedTravelers = result.travelers.map((aiResult: {
-      id: string;
-      priority: string;
-      shouldFollowUp: boolean;
-      urgency: string;
-      channel: string;
-      reasoning: string;
-      message: { subject: string; body: string } | null;
-    }) => {
-      const originalTraveler = travelers.find(t => t.id === aiResult.id);
-      return {
-        ...originalTraveler,
-        ...aiResult,
-      };
-    });
+    const enrichedTravelers = result.travelers.map(
+      (aiResult: {
+        id: string;
+        priority: string;
+        shouldFollowUp: boolean;
+        urgency: string;
+        channel: string;
+        reasoning: string;
+        message: { subject: string; body: string } | null;
+      }) => {
+        const originalTraveler = travelers.find((t) => t.id === aiResult.id);
+        return {
+          ...originalTraveler,
+          ...aiResult,
+        };
+      }
+    );
 
     return NextResponse.json({
       travelers: enrichedTravelers,
@@ -85,15 +125,9 @@ Analyze each traveler, assign priorities, generate draft messages where appropri
     console.error('Error generating digest:', error);
 
     if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
   }
 }
