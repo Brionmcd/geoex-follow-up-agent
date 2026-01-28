@@ -70,6 +70,7 @@ export default function InterpretPage() {
   const [copiedReply, setCopiedReply] = useState(false);
   const [showSamples, setShowSamples] = useState(false);
   const [showCapabilities, setShowCapabilities] = useState(false);
+  const [isInputExpanded, setIsInputExpanded] = useState(true);
 
   const documentOptions = [
     'Passport scan',
@@ -100,6 +101,7 @@ export default function InterpretPage() {
     setResponseText(sample.text);
     setResult(null);
     setError(null);
+    setIsInputExpanded(true);
   };
 
   const handleInterpret = async () => {
@@ -133,6 +135,7 @@ export default function InterpretPage() {
       }
 
       setResult(data);
+      setIsInputExpanded(false); // Collapse input when results arrive
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
@@ -146,6 +149,24 @@ export default function InterpretPage() {
       setCopiedReply(true);
       setTimeout(() => setCopiedReply(false), 2000);
     }
+  };
+
+  const handleInterpretAnother = () => {
+    setResponseText('');
+    setTravelerName('');
+    setRequestedItems([]);
+    setPreviousContacts('');
+    setAdditionalContext('');
+    setResult(null);
+    setError(null);
+    setIsInputExpanded(true);
+    setShowContext(false);
+  };
+
+  // Get truncated text for collapsed view
+  const getTruncatedText = (text: string, maxLength: number = 60) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
   };
 
   // Get frustration signals for display
@@ -200,273 +221,256 @@ export default function InterpretPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 flex-1">
-        {/* Title */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Response Interpreter</h1>
-          <p className="text-slate-600">
-            Paste a traveler&apos;s email response to understand what they need
-          </p>
-        </div>
+        {/* Title - Only show when no results */}
+        {!result && (
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Response Interpreter</h1>
+            <p className="text-slate-600">
+              Paste a traveler&apos;s email response to understand what they need
+            </p>
+          </div>
+        )}
 
-        {/* AI Capabilities Card (Collapsible) */}
-        <div className="border border-dashed border-gray-300 rounded-lg overflow-hidden mb-6">
-          <button
-            onClick={() => setShowCapabilities(!showCapabilities)}
-            className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-          >
-            <span className="text-sm text-gray-600 flex items-center gap-2">
-              <span>🧠</span>
-              What this AI does
-            </span>
-            <span className="text-xs text-gray-400 flex items-center gap-1">
-              {showCapabilities ? 'Hide' : 'Show'}
-              <svg
-                className={`w-4 h-4 transition-transform ${showCapabilities ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </span>
-          </button>
-          {showCapabilities && (
-            <div className="px-4 py-4 bg-white border-t border-gray-200">
-              <p className="text-sm text-gray-600 mb-3">
-                Paste any traveler response and the AI will:
-              </p>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-0.5">✓</span>
-                  <span className="text-gray-700">Understand what they&apos;re really saying (even if vague)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-0.5">✓</span>
-                  <span className="text-gray-700">Detect frustration, confusion, or concerns</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-0.5">✓</span>
-                  <span className="text-gray-700">Identify commitments (&ldquo;I&apos;ll send it tonight&rdquo;)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-0.5">✓</span>
-                  <span className="text-gray-700">Spot potential problems (cancellation, issues)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-0.5">✓</span>
-                  <span className="text-gray-700">Recommend your next action</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-0.5">✓</span>
-                  <span className="text-gray-700">Draft a reply if needed</span>
-                </li>
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Input Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Email Response</h2>
-
-          {/* Text Area */}
-          <textarea
-            value={responseText}
-            onChange={(e) => {
-              setResponseText(e.target.value);
-              setResult(null);
-              setError(null);
-            }}
-            placeholder="Paste the traveler's email response here..."
-            className="w-full h-40 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-slate-900 placeholder-slate-400"
-          />
-
-          {/* Context Section (Collapsible) */}
-          <div className="mt-4">
+        {/* AI Capabilities Card (Collapsible) - Only show when no results */}
+        {!result && (
+          <div className="border border-dashed border-gray-300 rounded-lg overflow-hidden mb-6">
             <button
-              onClick={() => setShowContext(!showContext)}
-              className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+              onClick={() => setShowCapabilities(!showCapabilities)}
+              className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
             >
-              <svg
-                className={`w-4 h-4 transition-transform ${showContext ? 'rotate-90' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-              Add context (optional)
+              <span className="text-sm text-gray-600 flex items-center gap-2">
+                <span>🧠</span>
+                What this AI does
+              </span>
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                {showCapabilities ? 'Hide' : 'Show'}
+                <svg
+                  className={`w-4 h-4 transition-transform ${showCapabilities ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
             </button>
-
-            {showContext && (
-              <div className="mt-4 p-4 bg-slate-50 rounded-lg space-y-4">
-                {/* Traveler Name */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Traveler Name
-                  </label>
-                  <input
-                    type="text"
-                    value={travelerName}
-                    onChange={(e) => setTravelerName(e.target.value)}
-                    placeholder="e.g., Sarah Mitchell"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
-                  />
-                </div>
-
-                {/* Requested Items */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    What we asked them for
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {documentOptions.map((item) => (
-                      <button
-                        key={item}
-                        onClick={() => handleItemToggle(item)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                          requestedItems.includes(item)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        {item}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Previous Contacts */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Previous follow-ups
-                  </label>
-                  <select
-                    value={previousContacts}
-                    onChange={(e) => setPreviousContacts(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
-                  >
-                    <option value="">Select...</option>
-                    <option value="1">1 previous contact</option>
-                    <option value="2">2 previous contacts</option>
-                    <option value="3+">3+ previous contacts</option>
-                  </select>
-                </div>
-
-                {/* Additional Context */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Additional context
-                  </label>
-                  <textarea
-                    value={additionalContext}
-                    onChange={(e) => setAdditionalContext(e.target.value)}
-                    placeholder="Any other relevant information..."
-                    className="w-full h-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-slate-900"
-                  />
-                </div>
+            {showCapabilities && (
+              <div className="px-4 py-4 bg-white border-t border-gray-200">
+                <p className="text-sm text-gray-600 mb-3">
+                  Paste any traveler response and the AI will:
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">✓</span>
+                    <span className="text-gray-700">Understand what they&apos;re really saying (even if vague)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">✓</span>
+                    <span className="text-gray-700">Detect frustration, confusion, or concerns</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">✓</span>
+                    <span className="text-gray-700">Identify commitments (&ldquo;I&apos;ll send it tonight&rdquo;)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">✓</span>
+                    <span className="text-gray-700">Spot potential problems (cancellation, issues)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">✓</span>
+                    <span className="text-gray-700">Recommend your next action</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">✓</span>
+                    <span className="text-gray-700">Draft a reply if needed</span>
+                  </li>
+                </ul>
               </div>
             )}
           </div>
+        )}
 
-          {/* Interpret Button */}
-          <button
-            onClick={handleInterpret}
-            disabled={isLoading || !responseText.trim()}
-            className="mt-6 w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed flex flex-col items-center justify-center gap-1"
-          >
-            {isLoading ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  <span>Interpreting response...</span>
-                </div>
-                <span className="text-blue-200 text-sm">
-                  {LOADING_MESSAGES[loadingMessageIndex]}
-                </span>
-              </>
-            ) : (
-              'Interpret Response'
-            )}
-          </button>
-
-          {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
-            </div>
-          )}
-        </div>
-
-        {/* Sample Responses Section - Collapsible Demo Helper */}
-        <div className="border border-dashed border-gray-300 rounded-lg overflow-hidden mb-6">
-          <button
-            onClick={() => setShowSamples(!showSamples)}
-            className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-          >
-            <span className="text-sm text-gray-500 flex items-center gap-2">
-              <span>🧪</span>
-              Test with sample responses
-            </span>
-            <span className="text-xs text-gray-400 flex items-center gap-1">
-              {showSamples ? 'Collapse' : 'Expand'}
-              <svg
-                className={`w-4 h-4 transition-transform ${showSamples ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </span>
-          </button>
-
-          {showSamples && (
-            <div className="px-4 py-3 bg-gray-50/50">
-              <p className="text-xs text-gray-400 mb-3">
-                Example responses for testing the interpreter. Click any to load it above.
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {sampleResponses.map((sample) => (
-                  <button
-                    key={sample.id}
-                    onClick={() => handleSampleSelect(sample)}
-                    className={`px-2 py-1 rounded text-xs transition-colors ${
-                      responseText === sample.text
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {sample.label}
-                  </button>
-                ))}
+        {/* Input Section - Collapsed or Expanded */}
+        {result && !isInputExpanded ? (
+          // Collapsed Input State
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <span className="text-lg">📧</span>
+                <p className="text-slate-700 truncate">
+                  &ldquo;{getTruncatedText(responseText)}&rdquo;
+                </p>
               </div>
+              <button
+                onClick={() => setIsInputExpanded(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0 ml-4"
+              >
+                Edit
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          // Expanded Input State
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Email Response</h2>
 
-        {/* Results Section */}
+            {/* Text Area */}
+            <textarea
+              value={responseText}
+              onChange={(e) => {
+                setResponseText(e.target.value);
+                setResult(null);
+                setError(null);
+              }}
+              placeholder="Paste the traveler's email response here..."
+              className="w-full h-40 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-slate-900 placeholder-slate-400"
+            />
+
+            {/* Context Section (Collapsible) */}
+            <div className="mt-4">
+              <button
+                onClick={() => setShowContext(!showContext)}
+                className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                <svg
+                  className={`w-4 h-4 transition-transform ${showContext ? 'rotate-90' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+                Add context (optional)
+              </button>
+
+              {showContext && (
+                <div className="mt-4 p-4 bg-slate-50 rounded-lg space-y-4">
+                  {/* Traveler Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Traveler Name
+                    </label>
+                    <input
+                      type="text"
+                      value={travelerName}
+                      onChange={(e) => setTravelerName(e.target.value)}
+                      placeholder="e.g., Sarah Mitchell"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                    />
+                  </div>
+
+                  {/* Requested Items */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      What we asked them for
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {documentOptions.map((item) => (
+                        <button
+                          key={item}
+                          onClick={() => handleItemToggle(item)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                            requestedItems.includes(item)
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Previous Contacts */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Previous follow-ups
+                    </label>
+                    <select
+                      value={previousContacts}
+                      onChange={(e) => setPreviousContacts(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                    >
+                      <option value="">Select...</option>
+                      <option value="1">1 previous contact</option>
+                      <option value="2">2 previous contacts</option>
+                      <option value="3+">3+ previous contacts</option>
+                    </select>
+                  </div>
+
+                  {/* Additional Context */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Additional context
+                    </label>
+                    <textarea
+                      value={additionalContext}
+                      onChange={(e) => setAdditionalContext(e.target.value)}
+                      placeholder="Any other relevant information..."
+                      className="w-full h-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-slate-900"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Interpret Button */}
+            <button
+              onClick={handleInterpret}
+              disabled={isLoading || !responseText.trim()}
+              className="mt-6 w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed flex flex-col items-center justify-center gap-1"
+            >
+              {isLoading ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    <span>Interpreting response...</span>
+                  </div>
+                  <span className="text-blue-200 text-sm">
+                    {LOADING_MESSAGES[loadingMessageIndex]}
+                  </span>
+                </>
+              ) : result ? (
+                'Re-interpret Response'
+              ) : (
+                'Interpret Response'
+              )}
+            </button>
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Results Section - Now prominently placed right after collapsed input */}
         {result && (
-          <div className="space-y-4">
+          <div className="space-y-4 mb-6">
             {/* Frustration Warning (if detected) */}
             {result.sentiment === 'frustrated' && frustrationSignals && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4">
@@ -675,8 +679,68 @@ export default function InterpretPage() {
                 </div>
               </div>
             )}
+
+            {/* Interpret Another Button */}
+            <div className="flex justify-center pt-4">
+              <button
+                onClick={handleInterpretAnother}
+                className="px-6 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Interpret Another Response
+              </button>
+            </div>
           </div>
         )}
+
+        {/* Sample Responses Section - Always at the bottom */}
+        <div className="border border-dashed border-gray-300 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setShowSamples(!showSamples)}
+            className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+          >
+            <span className="text-sm text-gray-500 flex items-center gap-2">
+              <span>🧪</span>
+              Test with sample responses
+            </span>
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              {showSamples ? 'Collapse' : 'Expand'}
+              <svg
+                className={`w-4 h-4 transition-transform ${showSamples ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </button>
+
+          {showSamples && (
+            <div className="px-4 py-3 bg-gray-50/50">
+              <p className="text-xs text-gray-400 mb-3">
+                Example responses for testing the interpreter. Click any to load it above.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {sampleResponses.map((sample) => (
+                  <button
+                    key={sample.id}
+                    onClick={() => handleSampleSelect(sample)}
+                    className={`px-2 py-1 rounded text-xs transition-colors ${
+                      responseText === sample.text
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {sample.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Footer */}
