@@ -207,13 +207,19 @@ export default function InterpretPage() {
                 href="/follow-up"
                 className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
               >
-                Follow-Up Agent
+                Follow-Up
               </Link>
               <Link
                 href="/digest"
                 className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
               >
-                Daily Digest
+                Digest
+              </Link>
+              <Link
+                href="/anomalies"
+                className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Anomalies
               </Link>
             </nav>
           </div>

@@ -441,13 +441,19 @@ export default function DigestPage() {
                 href="/follow-up"
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Follow-Up Agent
+                Follow-Up
               </Link>
               <Link
                 href="/interpret"
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Response Interpreter
+                Interpret
+              </Link>
+              <Link
+                href="/anomalies"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Anomalies
               </Link>
             </nav>
           </div>
