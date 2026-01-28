@@ -2,12 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import {
-  sampleResponses,
-  categoryLabels,
-  categoryColors,
-  SampleResponse,
-} from '@/lib/sampleResponses';
+import { sampleResponses } from '@/lib/sampleResponses';
 
 interface InterpretationResult {
   summary: string;
@@ -62,6 +57,7 @@ export default function InterpretPage() {
   const [result, setResult] = useState<InterpretationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedReply, setCopiedReply] = useState(false);
+  const [showSamples, setShowSamples] = useState(false);
 
   const documentOptions = [
     'Passport scan',
@@ -127,17 +123,6 @@ export default function InterpretPage() {
       setTimeout(() => setCopiedReply(false), 2000);
     }
   };
-
-  const groupedSamples = sampleResponses.reduce(
-    (acc, sample) => {
-      if (!acc[sample.category]) {
-        acc[sample.category] = [];
-      }
-      acc[sample.category].push(sample);
-      return acc;
-    },
-    {} as Record<string, SampleResponse[]>
-  );
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -325,39 +310,51 @@ export default function InterpretPage() {
           )}
         </div>
 
-        {/* Sample Responses Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Try Sample Responses</h2>
-          <p className="text-sm text-slate-600 mb-4">
-            Click any sample to load it into the text area above
-          </p>
+        {/* Sample Responses Section - Collapsible Demo Helper */}
+        <div className="border border-dashed border-gray-300 rounded-lg overflow-hidden mb-6">
+          <button
+            onClick={() => setShowSamples(!showSamples)}
+            className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+          >
+            <span className="text-sm text-gray-500 flex items-center gap-2">
+              <span>🧪</span>
+              Test with sample responses
+            </span>
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              {showSamples ? 'Collapse' : 'Expand'}
+              <svg
+                className={`w-4 h-4 transition-transform ${showSamples ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </button>
 
-          <div className="space-y-4">
-            {Object.entries(groupedSamples).map(([category, samples]) => (
-              <div key={category}>
-                <h3
-                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${categoryColors[category as SampleResponse['category']]}`}
-                >
-                  {categoryLabels[category as SampleResponse['category']]}
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {samples.map((sample) => (
-                    <button
-                      key={sample.id}
-                      onClick={() => handleSampleSelect(sample)}
-                      className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                        responseText === sample.text
-                          ? 'bg-blue-50 border-blue-300 text-blue-700'
-                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      {sample.label}
-                    </button>
-                  ))}
-                </div>
+          {showSamples && (
+            <div className="px-4 py-3 bg-gray-50/50">
+              <p className="text-xs text-gray-400 mb-3">
+                Example responses for testing the interpreter. Click any to load it above.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {sampleResponses.map((sample) => (
+                  <button
+                    key={sample.id}
+                    onClick={() => handleSampleSelect(sample)}
+                    className={`px-2 py-1 rounded text-xs transition-colors ${
+                      responseText === sample.text
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {sample.label}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Results Section */}
