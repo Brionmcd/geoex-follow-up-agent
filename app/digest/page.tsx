@@ -400,12 +400,20 @@ export default function DigestPage() {
               </div>
               <p className="text-sm text-gray-500 mt-1">{today}</p>
             </div>
-            <Link
-              href="/follow-up"
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              ← Single Follow-Up
-            </Link>
+            <nav className="flex items-center gap-4">
+              <Link
+                href="/follow-up"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Follow-Up Agent
+              </Link>
+              <Link
+                href="/interpret"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Response Interpreter
+              </Link>
+            </nav>
           </div>
         </div>
       </header>

@@ -125,6 +125,55 @@ export default function Home() {
               </div>
             </div>
           </Link>
+
+          {/* Response Interpreter Card */}
+          <Link
+            href="/interpret"
+            className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-200 transition-all"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                <svg
+                  className="w-6 h-6 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  Response Interpreter
+                </h3>
+                <p className="text-gray-600 mt-1 text-sm">
+                  Paste an email response from a traveler. The AI analyzes what they said,
+                  what it means, and recommends your next action.
+                </p>
+                <div className="mt-4 flex items-center text-blue-600 text-sm font-medium">
+                  Open tool
+                  <svg
+                    className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Info Section */}
@@ -148,7 +197,14 @@ export default function Home() {
             <li className="flex items-start gap-2">
               <span className="text-blue-600 mt-0.5">3.</span>
               <span>
-                Both tools generate personalized draft messages you can copy and send
+                <strong>Response Interpreter:</strong> For understanding replies. Paste an email
+                and get AI analysis of what they mean and what to do next.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-600 mt-0.5">4.</span>
+              <span>
+                All tools generate personalized draft messages you can copy and send
                 via your email client.
               </span>
             </li>

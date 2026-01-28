@@ -211,12 +211,20 @@ function FollowUpForm() {
               <span className="text-gray-300">|</span>
               <span className="text-gray-500">Follow-Up Agent</span>
             </div>
-            <Link
-              href="/digest"
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              {fromDigest ? '← Back to Daily Digest' : 'Daily Digest →'}
-            </Link>
+            <nav className="flex items-center gap-4">
+              <Link
+                href="/digest"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Daily Digest
+              </Link>
+              <Link
+                href="/interpret"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Response Interpreter
+              </Link>
+            </nav>
           </div>
         </div>
       </header>
