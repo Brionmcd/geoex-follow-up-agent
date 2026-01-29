@@ -4,9 +4,27 @@ import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { DataSourceIndicator } from '@/components/DataSourceIndicator';
+import {
+  sampleConversations,
+  TravelerConversation,
+  EmailMessage,
+  formatMessageDate,
+} from '@/lib/sampleConversations';
 
 // Types for the API response
+interface ConversationUnderstanding {
+  key_points: string[];
+  resolved_issues: string[];
+  open_issues: string[];
+  promises_made: string[];
+  concerns_raised: string[];
+  relationship_tone: 'friendly' | 'formal' | 'frustrated' | 'neutral';
+  current_status: string;
+}
+
 interface FollowUpResult {
+  conversation_understanding: ConversationUnderstanding | null;
+  message_approach?: string;
   should_follow_up: boolean;
   urgency: 'low' | 'medium' | 'high';
   channel: 'email' | 'phone';
@@ -15,6 +33,7 @@ interface FollowUpResult {
     subject: string;
     body: string;
   } | null;
+  context_usage?: string[];
 }
 
 // Missing items options
@@ -40,11 +59,11 @@ const LOADING_MESSAGES = [
   'Connecting to Sugati...',
   'Loading traveler profile from Salesforce...',
   'Checking communication history in Sugati...',
-  'Reviewing document status...',
-  'Analyzing past response patterns...',
+  'Analyzing conversation thread...',
+  'Identifying key discussion points...',
   'Evaluating urgency based on departure date...',
   'Determining optimal approach...',
-  'Generating personalized message...',
+  'Generating context-aware message...',
 ];
 
 function FollowUpForm() {
@@ -52,6 +71,10 @@ function FollowUpForm() {
 
   // Check if coming from digest
   const fromDigest = searchParams.get('from') === 'digest';
+
+  // Conversation state
+  const [selectedConversation, setSelectedConversation] = useState<TravelerConversation | null>(null);
+  const [showConversationHistory, setShowConversationHistory] = useState(true);
 
   // Form state
   const [travelerName, setTravelerName] = useState('');
@@ -85,6 +108,44 @@ function FollowUpForm() {
     return () => clearInterval(interval);
   }, [isLoading]);
 
+  // Handle conversation selection
+  const handleConversationSelect = (travelerId: string) => {
+    if (!travelerId) {
+      setSelectedConversation(null);
+      // Clear form
+      setTravelerName('');
+      setEmail('');
+      setDaysUntilDeparture('');
+      setPreviousFollowUps('0');
+      setMissingItems([]);
+      setAdditionalNotes('');
+      setResult(null);
+      return;
+    }
+
+    const conversation = sampleConversations.find((c) => c.travelerId === travelerId);
+    if (conversation) {
+      setSelectedConversation(conversation);
+      // Pre-fill form from conversation
+      setTravelerName(conversation.travelerName);
+      setEmail(conversation.travelerEmail);
+      setDaysUntilDeparture(conversation.daysUntilDeparture.toString());
+
+      // Count outbound messages as previous follow-ups
+      const outboundCount = conversation.thread.filter((m) => m.direction === 'outbound').length;
+      setPreviousFollowUps(outboundCount >= 3 ? '3+' : outboundCount.toString());
+
+      // Convert missing items to IDs
+      const missingIds = conversation.missingItems
+        .map((item) => labelToId[item] || item.toLowerCase().replace(/\s+/g, '_'))
+        .filter(Boolean);
+      setMissingItems(missingIds);
+
+      setAdditionalNotes(conversation.notes || '');
+      setResult(null);
+    }
+  };
+
   // Generate follow-up function
   const generateFollowUp = useCallback(async (
     name: string,
@@ -92,7 +153,10 @@ function FollowUpForm() {
     days: string,
     contacts: string,
     missing: string[],
-    notes: string
+    notes: string,
+    conversationHistory?: EmailMessage[],
+    isVip?: boolean,
+    previousTrips?: number
   ) => {
     setIsLoading(true);
     setLoadingMessageIndex(0);
@@ -114,6 +178,9 @@ function FollowUpForm() {
             (id) => MISSING_ITEMS_OPTIONS.find((item) => item.id === id)?.label
           ),
           additionalNotes: notes,
+          conversationHistory,
+          isVip,
+          previousTrips,
         }),
       });
 
@@ -205,7 +272,10 @@ function FollowUpForm() {
       daysUntilDeparture,
       previousFollowUps,
       missingItems,
-      additionalNotes
+      additionalNotes,
+      selectedConversation?.thread,
+      selectedConversation?.isVip,
+      selectedConversation?.previousTrips
     );
   };
 
@@ -250,6 +320,20 @@ function FollowUpForm() {
     if (count === 1) return 'Second contact — friendly reminder tone';
     if (count === 2) return 'Third contact — more direct but still warm';
     return 'Multiple contacts — firm but understanding tone';
+  };
+
+  // Get tone badge color
+  const getToneBadgeColor = (tone: string) => {
+    switch (tone) {
+      case 'friendly':
+        return 'bg-green-100 text-green-700';
+      case 'frustrated':
+        return 'bg-red-100 text-red-700';
+      case 'formal':
+        return 'bg-blue-100 text-blue-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
   };
 
   const urgencyDetails = result ? getUrgencyDetails(result.urgency) : null;
@@ -314,8 +398,115 @@ function FollowUpForm() {
           </div>
         )}
 
-        {/* AI Capabilities Card (Collapsible) */}
+        {/* Conversation Selector */}
         {!fromDigest && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">💬</span>
+                <h2 className="text-lg font-semibold text-gray-900">Load Conversation</h2>
+              </div>
+              <span className="text-xs text-gray-400">Demo: Select a sample conversation</span>
+            </div>
+            <select
+              value={selectedConversation?.travelerId || ''}
+              onChange={(e) => handleConversationSelect(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+            >
+              <option value="">— Select a traveler with conversation history —</option>
+              {sampleConversations.map((conv) => (
+                <option key={conv.travelerId} value={conv.travelerId}>
+                  {conv.travelerName} — {conv.tripName} ({conv.thread.length} messages, {conv.missingItems.join(', ') || 'complete'})
+                </option>
+              ))}
+            </select>
+            {selectedConversation && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedConversation.isVip && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                    ⭐ VIP
+                  </span>
+                )}
+                {selectedConversation.previousTrips && selectedConversation.previousTrips > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                    🔄 {selectedConversation.previousTrips} previous trips
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                  📅 {selectedConversation.daysSinceLastMessage} days since last message
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                  {selectedConversation.lastMessageDirection === 'inbound' ? '📥 Traveler' : '📤 GeoEx'} sent last
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Conversation History Panel */}
+        {selectedConversation && selectedConversation.thread.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <button
+              onClick={() => setShowConversationHistory(!showConversationHistory)}
+              className="w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-200"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">📧</span>
+                <span className="font-medium text-gray-900">
+                  Conversation History ({selectedConversation.thread.length} messages)
+                </span>
+              </div>
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${showConversationHistory ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showConversationHistory && (
+              <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
+                {selectedConversation.thread.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg ${
+                      msg.direction === 'outbound'
+                        ? 'bg-blue-50 border border-blue-100 ml-8'
+                        : 'bg-gray-50 border border-gray-200 mr-8'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">
+                        {msg.direction === 'outbound' ? '📤' : '📥'}
+                      </span>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                        msg.direction === 'outbound'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-200 text-gray-700'
+                      }`}>
+                        {msg.direction === 'outbound' ? 'GeoEx' : 'Traveler'}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {formatMessageDate(msg.date)}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 mb-1">
+                      {msg.subject}
+                    </p>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                      {msg.body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* AI Capabilities Card (Collapsible) */}
+        {!fromDigest && !selectedConversation && (
           <div className="border border-dashed border-gray-300 rounded-lg overflow-hidden">
             <button
               onClick={() => setShowCapabilities(!showCapabilities)}
@@ -345,19 +536,19 @@ function FollowUpForm() {
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 mt-0.5">✓</span>
+                    <span className="text-gray-700">Analyze the full conversation history</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">✓</span>
+                    <span className="text-gray-700">Identify key points, concerns, and promises made</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">✓</span>
                     <span className="text-gray-700">Decide if follow-up is needed right now</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 mt-0.5">✓</span>
-                    <span className="text-gray-700">Choose the right channel (email vs. phone)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span className="text-gray-700">Adjust tone based on contact history</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span className="text-gray-700">Write a personalized message (not a template)</span>
+                    <span className="text-gray-700">Generate a context-aware message that references past exchanges</span>
                   </li>
                 </ul>
               </div>
@@ -528,7 +719,9 @@ function FollowUpForm() {
                   </span>
                 </>
               ) : (
-                fromDigest && result ? 'Regenerate Follow-Up' : 'Generate Follow-Up'
+                selectedConversation
+                  ? 'Generate Context-Aware Follow-Up'
+                  : fromDigest && result ? 'Regenerate Follow-Up' : 'Generate Follow-Up'
               )}
             </button>
           </form>
@@ -544,6 +737,117 @@ function FollowUpForm() {
         {/* Results */}
         {result && (
           <div className="space-y-4">
+            {/* Conversation Understanding Card */}
+            {result.conversation_understanding && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-purple-50 border-b border-purple-100 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🧠</span>
+                    <h2 className="text-lg font-semibold text-purple-900">
+                      What I understood from this conversation
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  {/* Current Status */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Current Status</p>
+                    <p className="text-gray-900 font-medium">{result.conversation_understanding.current_status}</p>
+                  </div>
+
+                  {/* Relationship Tone */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Relationship tone:</span>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getToneBadgeColor(result.conversation_understanding.relationship_tone)}`}>
+                      {result.conversation_understanding.relationship_tone}
+                    </span>
+                  </div>
+
+                  {/* Key Points */}
+                  {result.conversation_understanding.key_points.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">Key Points</p>
+                      <ul className="space-y-1">
+                        {result.conversation_understanding.key_points.map((point, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                            <span className="text-gray-400 mt-0.5">•</span>
+                            {point}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Resolved Issues */}
+                    {result.conversation_understanding.resolved_issues.length > 0 && (
+                      <div className="bg-green-50 rounded-lg p-3">
+                        <p className="text-xs font-medium text-green-700 mb-2 flex items-center gap-1">
+                          <span>✅</span> Resolved
+                        </p>
+                        <ul className="space-y-1">
+                          {result.conversation_understanding.resolved_issues.map((issue, i) => (
+                            <li key={i} className="text-sm text-green-800">{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Open Issues */}
+                    {result.conversation_understanding.open_issues.length > 0 && (
+                      <div className="bg-amber-50 rounded-lg p-3">
+                        <p className="text-xs font-medium text-amber-700 mb-2 flex items-center gap-1">
+                          <span>⏳</span> Still Pending
+                        </p>
+                        <ul className="space-y-1">
+                          {result.conversation_understanding.open_issues.map((issue, i) => (
+                            <li key={i} className="text-sm text-amber-800">{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Promises Made */}
+                  {result.conversation_understanding.promises_made.length > 0 && (
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <p className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-1">
+                        <span>🤝</span> Commitments Made
+                      </p>
+                      <ul className="space-y-1">
+                        {result.conversation_understanding.promises_made.map((promise, i) => (
+                          <li key={i} className="text-sm text-blue-800">{promise}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Concerns Raised */}
+                  {result.conversation_understanding.concerns_raised.length > 0 && (
+                    <div className="bg-orange-50 rounded-lg p-3">
+                      <p className="text-xs font-medium text-orange-700 mb-2 flex items-center gap-1">
+                        <span>⚠️</span> Traveler Concerns
+                      </p>
+                      <ul className="space-y-1">
+                        {result.conversation_understanding.concerns_raised.map((concern, i) => (
+                          <li key={i} className="text-sm text-orange-800">{concern}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Message Approach */}
+                  {result.message_approach && (
+                    <div className="border-t border-gray-100 pt-4 mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-1">My approach for this message</p>
+                      <p className="text-sm text-gray-600 italic">&ldquo;{result.message_approach}&rdquo;</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Decision Card - Enhanced */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Header with decision */}
@@ -652,6 +956,25 @@ function FollowUpForm() {
                     {result.message.body}
                   </div>
                 </div>
+
+                {/* Context Usage */}
+                {result.context_usage && result.context_usage.length > 0 && (
+                  <div className="px-6 py-4 bg-purple-50 border-t border-purple-100">
+                    <h3 className="text-sm font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                      <span>🔗</span>
+                      How this message uses conversation context
+                    </h3>
+                    <ul className="space-y-1">
+                      {result.context_usage.map((usage, i) => (
+                        <li key={i} className="text-sm text-purple-800 flex items-start gap-2">
+                          <span className="text-purple-400 mt-0.5">•</span>
+                          {usage}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="bg-gray-50 border-t border-gray-200 px-6 py-4">
                   <button
                     onClick={copyToClipboard}
