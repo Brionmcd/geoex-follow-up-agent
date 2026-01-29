@@ -157,6 +157,9 @@ export default function AnomaliesPage() {
               <span className="text-slate-600">Anomaly Detection</span>
             </div>
             <nav className="flex items-center gap-4 text-sm">
+              <Link href="/trips" className="text-slate-600 hover:text-blue-600">
+                Trip Health
+              </Link>
               <Link href="/follow-up" className="text-slate-600 hover:text-blue-600">
                 Follow-Up
               </Link>

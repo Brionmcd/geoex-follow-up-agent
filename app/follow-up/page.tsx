@@ -351,6 +351,12 @@ function FollowUpForm() {
             </div>
             <nav className="flex items-center gap-4">
               <Link
+                href="/trips"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Trip Health
+              </Link>
+              <Link
                 href="/digest"
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >

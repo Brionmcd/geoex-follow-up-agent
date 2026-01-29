@@ -447,6 +447,12 @@ export default function DigestPage() {
             </div>
             <nav className="flex items-center gap-4">
               <Link
+                href="/trips"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Trip Health
+              </Link>
+              <Link
                 href="/follow-up"
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >

@@ -28,6 +28,60 @@ export default function Home() {
 
         {/* Tool Cards */}
         <div className="grid md:grid-cols-2 gap-6">
+          {/* Trip Health Dashboard Card */}
+          <Link
+            href="/trips"
+            className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-green-200 transition-all md:col-span-2"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                <svg
+                  className="w-6 h-6 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                    Trip Health Dashboard
+                  </h3>
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                    New
+                  </span>
+                </div>
+                <p className="text-gray-600 mt-1 text-sm">
+                  See all upcoming trips with AI-powered health assessments. Compare readiness to
+                  historical baselines, predict outcomes, and identify which trips need attention now.
+                </p>
+                <div className="mt-4 flex items-center text-green-600 text-sm font-medium">
+                  Open dashboard
+                  <svg
+                    className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </Link>
+
           {/* Single Follow-Up Card */}
           <Link
             href="/follow-up"
@@ -232,36 +286,36 @@ export default function Home() {
             <li className="flex items-start gap-2">
               <span className="text-blue-600 mt-0.5">1.</span>
               <span>
+                <strong>Trip Health Dashboard:</strong> Start here for a bird&apos;s eye view.
+                See which trips are on track, at risk, or need immediate attention.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-600 mt-0.5">2.</span>
+              <span>
                 <strong>Follow-Up Agent:</strong> For ad-hoc checks. Enter one traveler&apos;s
                 info and get instant AI analysis.
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-600 mt-0.5">2.</span>
+              <span className="text-blue-600 mt-0.5">3.</span>
               <span>
                 <strong>Daily Digest:</strong> For daily planning. See all travelers who
                 need attention, prioritized by urgency.
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-600 mt-0.5">3.</span>
+              <span className="text-blue-600 mt-0.5">4.</span>
               <span>
                 <strong>Response Interpreter:</strong> For understanding replies. Paste an email
                 and get AI analysis of what they mean and what to do next.
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-600 mt-0.5">4.</span>
+              <span className="text-blue-600 mt-0.5">5.</span>
               <span>
                 <strong>Anomaly Detection:</strong> For spotting issues. AI scans all data to find
                 unusual patterns, outliers, and behavior changes.
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-blue-600 mt-0.5">5.</span>
-              <span>
-                All tools generate personalized draft messages you can copy and send
-                via your email client.
               </span>
             </li>
           </ul>
